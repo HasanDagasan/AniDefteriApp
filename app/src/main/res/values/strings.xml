@@ -1,0 +1,12 @@
+<resources>
+    <string name="app_name">Anı Defteri</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="yaz_rengini_de_i_tir">Yazı Rengini Değiştir</string>
+    <string name="yaz_tipini_de_i_tir">Yazı Tipini Değiştir</string>
+    <string name="sil">sil</string>
+    <string name="favor_s_z_bulunamadi">FAVORİ SÖZ BULUNAMADI.</string>
+    <string name="ba_la">Başla</string>
+    <string name="list_item">List Item</string>
+    <string name="l_stelenecek_s_z_bulunamadi">LİSTELENECEK SÖZ BULUNAMADI.</string>
+    <string name="metin_ekle">Metin Ekle</string>
+</resources>
