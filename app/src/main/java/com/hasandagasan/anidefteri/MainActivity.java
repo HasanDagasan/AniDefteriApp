@@ -65,6 +65,7 @@ public class MainActivity extends AppCompatActivity implements ButonControllersC
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
         MobileAds.initialize(this, initializationStatus -> {});
         adView = findViewById(R.id.adView);
         AdRequest adRequest = new AdRequest.Builder().build();

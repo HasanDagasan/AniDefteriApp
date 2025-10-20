@@ -7,9 +7,6 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -21,10 +18,8 @@ import android.view.ViewGroup;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdView;
-import com.google.android.gms.ads.MobileAds;
 import com.hasandagasan.anidefteri.classes.GetTypeFace;
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -128,6 +123,7 @@ public class ListFragment extends Fragment {
             }
 
             listView.setOnItemClickListener((parent, view1, position, id) -> {
+                /*
                 if (actionMode == null) {
                     String secilenMetin = liste.get(position);
                     boolean favoriDurumu = secilenMetin.startsWith("★");
@@ -150,6 +146,14 @@ public class ListFragment extends Fragment {
                 } else {
                         adapter.toggleSelection(position);
                         updateActionModeTitle();
+                }*/
+
+                if (actionMode == null) {
+                    showOptionsDialog(position);
+                } else {
+                    // ActionMode aktif ise çoklu seçime devam et.
+                    adapter.toggleSelection(position);
+                    updateActionModeTitle();
                 }
             });
 
@@ -164,6 +168,76 @@ public class ListFragment extends Fragment {
             });
         }
         return view;
+    }
+    private void showOptionsDialog(int position) {
+        if (getActivity() == null) return; // Güvenlik kontrolü
+
+        // Tıklanan öğenin metnini ve favori durumunu alalım.
+        String secilenMetin = liste.get(position);
+        boolean isFavorite = secilenMetin.startsWith("★");
+
+        // "Favorilere Ekle" veya "Favorilerden Kaldır" metnini belirle
+        String favoriSecenegi = isFavorite ? "Favorilerden Kaldır" : "Favorilere Ekle";
+
+        // Seçenekler dizisini oluştur
+        final CharSequence[] options = {"Düzenle", "Sil", favoriSecenegi};
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("Seçenekler");
+        builder.setItems(options, (dialog, item) -> {
+            // Hangi seçeneğe tıklandığını kontrol et
+            if (options[item].equals("Düzenle")) {
+                // --- DÜZENLEME İŞLEMİ ---
+                // Bu kod bloğu zaten onItemClickListener içinde vardı, buraya taşıdık.
+                ((MainActivity) getActivity()).mouseClickSound();
+
+                // Metni ve favori durumunu editFragment'e gönder
+                String temizMetin = isFavorite ? secilenMetin.substring(1).trim() : secilenMetin;
+                temizMetin = temizMetin.replaceAll("\\(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}\\)", "").trim();
+
+                getActivity().getSupportFragmentManager().popBackStack(); // ListFragment'ı kapat
+
+                editFragment editFragment = com.hasandagasan.anidefteri.editFragment.newInstance(temizMetin, isFavorite);
+                getActivity().getSupportFragmentManager()
+                        .beginTransaction()
+                        .replace(R.id.fragment_container, editFragment)
+                        .addToBackStack(null)
+                        .commit();
+
+            } else if (options[item].equals("Sil")) {
+                // --- SİLME İŞLEMİ ---
+                // Çoklu silme yerine tekli silme için onay dialog'u gösterelim
+                new AlertDialog.Builder(requireContext())
+                        .setTitle("Silme Onayı")
+                        .setMessage("Bu öğeyi silmek istediğinize emin misiniz?")
+                        .setPositiveButton("Evet", (d, w) -> {
+                            ((MainActivity) getActivity()).mouseClickSound();
+
+                            // JSON dosyasından ve listeden silme işlemi
+                            String silinecekMetin = liste.get(position);
+                            jsonDosyasindanSil(silinecekMetin); // JSON'dan sil
+                            liste.remove(position); // ArrayList'ten sil
+                            adapter.notifyDataSetChanged(); // Adaptörü güncelle
+
+                            Toast.makeText(requireContext(), "Silindi", Toast.LENGTH_SHORT).show();
+
+                            // Eğer liste boşaldıysa "Söz Yok" metnini göster
+                            if(liste.isEmpty()){
+                                textView.setVisibility(View.VISIBLE);
+                            }
+                        })
+                        .setNegativeButton("Hayır", (d, w) -> ((MainActivity) getActivity()).mouseClickSound())
+                        .show();
+
+            } else if (options[item].equals(favoriSecenegi)) {
+                // --- FAVORİ EKLEME/KALDIRMA İŞLEMİ ---
+                ((MainActivity) getActivity()).mouseClickSound();
+
+                // Adapter'daki favori değiştirme metodunu tetikle
+                adapter.toggleFavorite(position);
+            }
+        });
+        builder.show(); // Dialog penceresini göster
     }
     @Override
     public void onDestroyView() {
@@ -287,7 +361,6 @@ public class ListFragment extends Fragment {
             e.printStackTrace();
         }
     }
-
     private int dpToPx(int dp) {
         return (int) (dp * getResources().getDisplayMetrics().density);
     }

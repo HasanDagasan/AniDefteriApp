@@ -108,6 +108,37 @@ public class MyListAdapter extends BaseAdapter {
         }
         return items;
     }
+    public void toggleFavorite(int position) {
+        // Pozisyonun geçerli olup olmadığını kontrol et
+        if (position < 0 || position >= liste.size()) {
+            return;
+        }
+
+        String currentItemText = liste.get(position);
+        boolean isCurrentlyFavorite = currentItemText.startsWith("★");
+
+        // Yeni favori durumunu belirle
+        boolean newFavoriteState = !isCurrentlyFavorite;
+
+        // Metni güncelle (yıldız ekle veya kaldır)
+        if (newFavoriteState) {
+            // Favori değilse yıldız ekle
+            String displayText = currentItemText.trim();
+            liste.set(position, "★ " + displayText);
+        } else {
+            // Favori ise yıldızı kaldır
+            String displayText = currentItemText.substring(1).trim();
+            liste.set(position, displayText);
+        }
+
+        // Listener'ı (dinleyiciyi) tetikle. Bu, değişikliği JSON dosyasına kaydeder.
+        if (favoriteChangedListener != null) {
+            favoriteChangedListener.onFavoriteChanged(position, newFavoriteState);
+        }
+
+        // Değişikliğin anında görünmesi için adaptörü bilgilendir.
+        notifyDataSetChanged();
+    }
 
     @Override
     public int getCount() { return liste.size(); }

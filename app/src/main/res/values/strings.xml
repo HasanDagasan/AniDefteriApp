@@ -9,4 +9,8 @@
     <string name="list_item">List Item</string>
     <string name="l_stelenecek_s_z_bulunamadi">LİSTELENECEK SÖZ BULUNAMADI.</string>
     <string name="metin_ekle">Metin Ekle</string>
+    <string name="filtrele">Filtrele</string>
+    <string name="filtre_yok">Filtre Yok</string>
+    <string name="sadece_favorileri_g_ster">Sadece Favorileri Göster</string>
+    <string name="favorileri_gizle">Favorileri Gizle</string>
 </resources>
