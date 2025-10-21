@@ -135,14 +135,6 @@ public class MainActivity extends AppCompatActivity implements ButonControllersC
                                 0
                         );
                     }
-
-                    //View adView = findViewById(R.id.adView);
-                   // if (adView != null) {
-                   //     ViewGroup.MarginLayoutParams adParams = (ViewGroup.MarginLayoutParams) adView.getLayoutParams();
-                   //     adParams.topMargin = systemBarsInsets.top;
-                   //     adView.setLayoutParams(adParams);
-                   // }
-
                     return windowInsets;
                 });
     }

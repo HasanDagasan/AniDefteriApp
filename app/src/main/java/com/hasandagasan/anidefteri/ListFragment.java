@@ -6,15 +6,14 @@ import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -35,66 +34,75 @@ public class ListFragment extends Fragment {
     public ListFragment() {}
     ListView listView;
     ArrayList<String> liste;
+    ArrayList<String> tumListe;
     MyListAdapter adapter;
     TextView textView;
     private androidx.appcompat.view.ActionMode actionMode;
     private AdView adView;
+    private Button filterButton;
+    private Button deleteButton;
+    private int aktifFiltre = 0;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_list, container, false);
 
-        adView = view.findViewById(R.id.adViewFragment);
-        AdRequest adRequest = new AdRequest.Builder().build();
-        adView.loadAd(adRequest);
-
         listView = view.findViewById(R.id.listView);
         textView = view.findViewById(R.id.textViewSozYok);
+        filterButton = view.findViewById(R.id.filterButton);
+        deleteButton = view.findViewById(R.id.deleteButton);
+
         SharedPreferences sharedPreferences = requireActivity().getSharedPreferences("AppPrefs", Context.MODE_PRIVATE);
         int selectedColor = sharedPreferences.getInt("selectedColor", Color.BLACK);
         String selectedFont = sharedPreferences.getString("selectedFont", "Sans Serif");
         GetTypeFace typeFace = new GetTypeFace();
         Typeface typeface = typeFace.getTypefaceFromFontName(getContext(), selectedFont);
-
         textView.setTypeface(typeface);
         textView.setTextColor(selectedColor);
 
+        filterButton.setOnClickListener(v -> {
+            ((MainActivity) getActivity()).mouseClickSound();
+            showFilterDialog();
+        });
+
+        deleteButton.setOnClickListener(v -> {
+            ((MainActivity) getActivity()).mouseClickSound();
+            new AlertDialog.Builder(requireContext())
+                    .setTitle("Silme Onayı")
+                    .setMessage("Seçili öğeleri silmek istediğinize emin misiniz?")
+                    .setPositiveButton("Evet", (dialog, which) -> {
+                        ((MainActivity) getActivity()).mouseClickSound();
+                        secilenOgeleriSil();
+                        if (actionMode != null) {
+                            actionMode.finish();
+                        }
+                        Toast.makeText(requireContext(), "Silindi", Toast.LENGTH_SHORT).show();
+                        if(liste == null || liste.isEmpty()){
+                            textView.setVisibility(View.VISIBLE);
+                        }
+                    })
+                    .setNegativeButton("Hayır",(dialog, which) -> {
+                        ((MainActivity) getActivity()).mouseClickSound();
+                    })
+                    .show();
+        });
+
         androidx.appcompat.view.ActionMode.Callback actionModeCallback = new androidx.appcompat.view.ActionMode.Callback() {
             @Override
-            public boolean onCreateActionMode(androidx.appcompat.view.ActionMode mode, Menu menu) {
-                MenuInflater inflater = mode.getMenuInflater();
-                inflater.inflate(R.menu.multiple_selection, menu);
+            public boolean onCreateActionMode(androidx.appcompat.view.ActionMode mode, android.view.Menu menu) {
+                setFilterButtonVisible(false);
+                setDeleteButtonVisible(true);
                 return true;
             }
 
             @Override
-            public boolean onPrepareActionMode(androidx.appcompat.view.ActionMode mode, Menu menu) {
+            public boolean onPrepareActionMode(androidx.appcompat.view.ActionMode mode, android.view.Menu menu) {
                 return false;
             }
 
             @Override
-            public boolean onActionItemClicked(androidx.appcompat.view.ActionMode mode, MenuItem item) {
-                if (item.getItemId() == R.id.action_delete) {
-                    new AlertDialog.Builder(requireContext())
-                            .setTitle("Silme Onayı")
-                            .setMessage("Bu öğeyi silmek istediğinize emin misiniz?")
-                            .setPositiveButton("Evet", (dialog, which) -> {
-                                ((MainActivity) getActivity()).mouseClickSound();
-                                secilenOgeleriSil();
-                                mode.finish();
-                                Toast.makeText(requireContext(), "Silindi", Toast.LENGTH_SHORT).show();
-                                if(liste == null || liste.isEmpty()){
-                                    textView.setVisibility(View.VISIBLE);
-                                }
-                            })
-                            .setNegativeButton("Hayır",(dialog, which) -> {
-                                ((MainActivity) getActivity()).mouseClickSound();
-                            })
-                            .show();
-                    ((MainActivity) getActivity()).mouseClickSound();
-                    return true;
-                }
+            public boolean onActionItemClicked(androidx.appcompat.view.ActionMode mode, android.view.MenuItem item) {
                 return false;
             }
 
@@ -102,19 +110,28 @@ public class ListFragment extends Fragment {
             public void onDestroyActionMode(androidx.appcompat.view.ActionMode mode) {
                 adapter.clearSelection();
                 actionMode = null;
+                setFilterButtonVisible(true);
+                setDeleteButtonVisible(false);
             }
         };
+
         if (getArguments() != null) {
             liste = getArguments().getStringArrayList("liste");
+            tumListe = new ArrayList<>(liste);
             adapter = new MyListAdapter(getContext(), liste, selectedColor, typeface, true);
 
-            // Favori değişikliği callback'ini ayarla
             adapter.setOnFavoriteChangedListener((position, isFavorite) -> {
                 String metin = liste.get(position);
                 String temizMetin = metin.startsWith("★") ? metin.substring(1).trim() : metin;
                 temizMetin = temizMetin.replaceAll("\\(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}\\)", "").trim();
 
                 jsonDosyasindaFavoriGuncelle(temizMetin, isFavorite);
+                guncelleTumListe(metin, isFavorite);
+
+                // Filtre aktifse tekrar uygula
+                if (aktifFiltre != 0) {
+                    filtreUygula(aktifFiltre);
+                }
             });
             listView.setAdapter(adapter);
 
@@ -123,35 +140,9 @@ public class ListFragment extends Fragment {
             }
 
             listView.setOnItemClickListener((parent, view1, position, id) -> {
-                /*
-                if (actionMode == null) {
-                    String secilenMetin = liste.get(position);
-                    boolean favoriDurumu = secilenMetin.startsWith("★");
-
-                    String temizMetin = favoriDurumu ? secilenMetin.substring(1).trim() : secilenMetin;
-                    temizMetin = temizMetin.replaceAll("\\(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}\\)", "").trim();
-
-                    getActivity().getSupportFragmentManager().popBackStack();
-
-                    ((MainActivity) getActivity()).mouseClickSound();
-                    editFragment editFragment = com.hasandagasan.anidefteri.editFragment.newInstance(temizMetin, favoriDurumu);
-                    if (getActivity() != null) {
-                        getActivity().getSupportFragmentManager()
-                                .beginTransaction()
-                                .replace(R.id.fragment_container, editFragment)
-                                .addToBackStack(null)
-                                .commit();
-
-                    }
-                } else {
-                        adapter.toggleSelection(position);
-                        updateActionModeTitle();
-                }*/
-
                 if (actionMode == null) {
                     showOptionsDialog(position);
                 } else {
-                    // ActionMode aktif ise çoklu seçime devam et.
                     adapter.toggleSelection(position);
                     updateActionModeTitle();
                 }
@@ -169,33 +160,119 @@ public class ListFragment extends Fragment {
         }
         return view;
     }
-    private void showOptionsDialog(int position) {
-        if (getActivity() == null) return; // Güvenlik kontrolü
 
-        // Tıklanan öğenin metnini ve favori durumunu alalım.
+    private void showFilterDialog() {
+        final CharSequence[] filterOptions = {"Filtre Yok", "Favoriler", "Favori Olmayanlar"};
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+        builder.setTitle("Filtre Seçin");
+        builder.setSingleChoiceItems(filterOptions, aktifFiltre, (dialog, which) -> {
+            aktifFiltre = which;
+            filtreUygula(which);
+            dialog.dismiss();
+            ((MainActivity) getActivity()).mouseClickSound();
+        });
+        builder.show();
+    }
+
+    private void filtreUygula(int filterType) {
+        liste.clear();
+
+        switch (filterType) {
+            case 0:
+                liste.addAll(tumListe);
+                filterButton.setText("Filtrele");
+                break;
+            case 1:
+                filterButton.setText("Favoriler");
+                for (String item : tumListe) {
+                    if (item.startsWith("★")) {
+                        liste.add(item);
+                    }
+                }
+                break;
+            case 2:
+                filterButton.setText("Favori Olmayanlar");
+                for (String item : tumListe) {
+                    if (!item.startsWith("★")) {
+                        liste.add(item);
+
+                    }
+                }
+                break;
+        }
+
+        adapter.notifyDataSetChanged();
+
+        if(liste.isEmpty()){
+            textView.setVisibility(View.VISIBLE);
+        } else {
+            textView.setVisibility(View.INVISIBLE);
+        }
+    }
+
+    private void setFilterButtonVisible(boolean visible) {
+        if (filterButton != null) {
+            filterButton.setVisibility(visible ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    private void setDeleteButtonVisible(boolean visible) {
+        if (deleteButton != null) {
+            deleteButton.setVisibility(visible ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    private void guncelleTumListe(String eskiMetin, boolean yeniFavoriDurumu) {
+        for (int i = 0; i < tumListe.size(); i++) {
+            String item = tumListe.get(i);
+            String temizItem = item.startsWith("★") ? item.substring(1).trim() : item;
+
+            // Tarih kısmını da çıkaralım
+            String temizItemMetin = temizItem.replaceAll("\\(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}\\)", "").trim();
+
+            String temizEskiMetin = eskiMetin.startsWith("★") ? eskiMetin.substring(1).trim() : eskiMetin;
+            String temizEskiMetinSadece = temizEskiMetin.replaceAll("\\(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}\\)", "").trim();
+
+            if (temizItemMetin.equals(temizEskiMetinSadece)) {
+                // Tarih kısmını koruyalım
+                String tarihKismi = "";
+                if (item.contains("(") && item.contains(")")) {
+                    int start = item.indexOf("(");
+                    int end = item.indexOf(")") + 1;
+                    tarihKismi = "\n" + item.substring(start, end);
+                }
+
+                if (yeniFavoriDurumu) {
+                    tumListe.set(i, "★ " + temizItemMetin + tarihKismi);
+                } else {
+                    tumListe.set(i, temizItemMetin + tarihKismi);
+                }
+                break;
+            }
+        }
+    }
+
+    private void showOptionsDialog(int position) {
+        if (getActivity() == null) return;
+
         String secilenMetin = liste.get(position);
         boolean isFavorite = secilenMetin.startsWith("★");
 
-        // "Favorilere Ekle" veya "Favorilerden Kaldır" metnini belirle
         String favoriSecenegi = isFavorite ? "Favorilerden Kaldır" : "Favorilere Ekle";
 
-        // Seçenekler dizisini oluştur
         final CharSequence[] options = {"Düzenle", "Sil", favoriSecenegi};
 
         AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
-        builder.setTitle("Seçenekler");
+        builder.setTitle("Ne yapmak istersin");
         builder.setItems(options, (dialog, item) -> {
-            // Hangi seçeneğe tıklandığını kontrol et
             if (options[item].equals("Düzenle")) {
-                // --- DÜZENLEME İŞLEMİ ---
-                // Bu kod bloğu zaten onItemClickListener içinde vardı, buraya taşıdık.
                 ((MainActivity) getActivity()).mouseClickSound();
 
-                // Metni ve favori durumunu editFragment'e gönder
                 String temizMetin = isFavorite ? secilenMetin.substring(1).trim() : secilenMetin;
                 temizMetin = temizMetin.replaceAll("\\(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}\\)", "").trim();
 
-                getActivity().getSupportFragmentManager().popBackStack(); // ListFragment'ı kapat
+                getActivity().getSupportFragmentManager().popBackStack();
 
                 editFragment editFragment = com.hasandagasan.anidefteri.editFragment.newInstance(temizMetin, isFavorite);
                 getActivity().getSupportFragmentManager()
@@ -205,23 +282,20 @@ public class ListFragment extends Fragment {
                         .commit();
 
             } else if (options[item].equals("Sil")) {
-                // --- SİLME İŞLEMİ ---
-                // Çoklu silme yerine tekli silme için onay dialog'u gösterelim
                 new AlertDialog.Builder(requireContext())
                         .setTitle("Silme Onayı")
                         .setMessage("Bu öğeyi silmek istediğinize emin misiniz?")
                         .setPositiveButton("Evet", (d, w) -> {
                             ((MainActivity) getActivity()).mouseClickSound();
 
-                            // JSON dosyasından ve listeden silme işlemi
                             String silinecekMetin = liste.get(position);
-                            jsonDosyasindanSil(silinecekMetin); // JSON'dan sil
-                            liste.remove(position); // ArrayList'ten sil
-                            adapter.notifyDataSetChanged(); // Adaptörü güncelle
+                            jsonDosyasindanSil(silinecekMetin);
+                            liste.remove(position);
+                            tumListe.remove(silinecekMetin);
+                            adapter.notifyDataSetChanged();
 
                             Toast.makeText(requireContext(), "Silindi", Toast.LENGTH_SHORT).show();
 
-                            // Eğer liste boşaldıysa "Söz Yok" metnini göster
                             if(liste.isEmpty()){
                                 textView.setVisibility(View.VISIBLE);
                             }
@@ -230,15 +304,22 @@ public class ListFragment extends Fragment {
                         .show();
 
             } else if (options[item].equals(favoriSecenegi)) {
-                // --- FAVORİ EKLEME/KALDIRMA İŞLEMİ ---
                 ((MainActivity) getActivity()).mouseClickSound();
-
-                // Adapter'daki favori değiştirme metodunu tetikle
                 adapter.toggleFavorite(position);
+
+                // Favori değişikliğinden sonra filtre aktifse tekrar uygula
+                if (aktifFiltre != 0) {
+                    // toggleFavorite sonrası adapter otomatik güncellenir
+                    // ama liste içeriği değişmez, o yüzden filtreyi tekrar uygulayalım
+                    new android.os.Handler().postDelayed(() -> {
+                        filtreUygula(aktifFiltre);
+                    }, 100);
+                }
             }
         });
-        builder.show(); // Dialog penceresini göster
+        builder.show();
     }
+
     @Override
     public void onDestroyView() {
         super.onDestroyView();
@@ -247,6 +328,7 @@ public class ListFragment extends Fragment {
             ((MainActivity) getActivity()).setupButonlar();
         }
     }
+
     private void updateActionModeTitle() {
         if (actionMode != null) {
             int secilenSayisi = adapter.getSelectedItemCount();
@@ -255,9 +337,9 @@ public class ListFragment extends Fragment {
             }else{
                 actionMode.finish();
             }
-
         }
     }
+
     private void secilenOgeleriSil() {
         ArrayList<Integer> secilenPozisyonlar = adapter.getSelectedItems();
 
@@ -266,12 +348,13 @@ public class ListFragment extends Fragment {
         for (int pozisyon : secilenPozisyonlar) {
             String silinecekMetin = liste.get(pozisyon);
             liste.remove(pozisyon);
+            tumListe.remove(silinecekMetin);
             Log.d("silinecek metin", "silinecek metin" + ": " + silinecekMetin);
-            // JSON dosyasından da sil
             jsonDosyasindanSil(silinecekMetin);
         }
         adapter.notifyDataSetChanged();
     }
+
     private void jsonDosyasindanSil(String silinecekMetin) {
         try {
             String FILE_DIR = "Metin";
@@ -317,6 +400,7 @@ public class ListFragment extends Fragment {
             e.printStackTrace();
         }
     }
+
     private void jsonDosyasindaFavoriGuncelle(String metin, boolean favoriDurumu) {
         try {
             String FILE_DIR = "Metin";
@@ -328,7 +412,6 @@ public class ListFragment extends Fragment {
                 return;
             }
 
-            // JSON dosyasını oku
             StringBuilder jsonString = new StringBuilder();
             BufferedReader reader = new BufferedReader(new FileReader(file));
             String line;
@@ -339,7 +422,6 @@ public class ListFragment extends Fragment {
 
             JSONArray sozlerArray = new JSONArray(jsonString.toString());
 
-            // İlgili metni bul ve favori durumunu güncelle
             for (int i = 0; i < sozlerArray.length(); i++) {
                 JSONObject sozObj = sozlerArray.getJSONObject(i);
                 if (sozObj.getString("metin").trim().equals(metin)) {
@@ -349,7 +431,6 @@ public class ListFragment extends Fragment {
                 }
             }
 
-            // Güncellenmiş JSON'u dosyaya yaz
             FileWriter writer = new FileWriter(file);
             writer.write(sozlerArray.toString());
             writer.close();
@@ -361,9 +442,11 @@ public class ListFragment extends Fragment {
             e.printStackTrace();
         }
     }
+
     private int dpToPx(int dp) {
         return (int) (dp * getResources().getDisplayMetrics().density);
     }
+
     public void yenidenYukle() {
         if (getContext() == null || getView() == null) return;
 
@@ -378,7 +461,5 @@ public class ListFragment extends Fragment {
 
         textView.setTypeface(typeface);
         textView.setTextColor(selectedColor);
-
-
     }
 }

@@ -6,13 +6,40 @@
     android:layout_height="match_parent"
     android:background="#dcdcdc">
 
-    <com.google.android.gms.ads.AdView
-        android:id="@+id/adViewFragment"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="top"
-        ads:adSize="BANNER"
-        ads:adUnitId="ca-app-pub-3940256099942544/6300978111"/>
+        android:orientation="horizontal"
+        android:padding="8dp"
+        android:background="#bebebe"
+        android:elevation="4dp">
+
+        <Button
+            android:id="@+id/filterButton"
+            android:layout_width="0dp"
+            android:layout_height="50dp"
+            android:layout_weight="1"
+            android:text="Filtrele"
+            android:drawableLeft="@android:drawable/ic_menu_search"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:textAllCaps="false" />
+
+        <Button
+            android:id="@+id/deleteButton"
+            android:layout_width="0dp"
+            android:layout_height="48dp"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="Sil"
+            android:drawableLeft="@android:drawable/ic_menu_delete"
+            android:drawablePadding="8dp"
+            android:paddingLeft="16dp"
+            android:paddingRight="16dp"
+            android:textAllCaps="false"
+            android:visibility="gone" />
+
+    </LinearLayout>
 
     <TextView
         android:id="@+id/textViewSozYok"
@@ -21,13 +48,13 @@
         android:visibility="invisible"
         android:text="LİSTELENECEK SÖZ BULUNAMADI."
         android:layout_marginStart="20dp"
-        android:layout_marginTop="70dp"/>
+        android:layout_marginTop="80dp"/>
 
     <ListView
         android:id="@+id/listView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingTop="60dp"
+        android:paddingTop="80dp"
         android:paddingBottom="70dp"
         android:clipToPadding="false" />
 
