@@ -59,7 +59,7 @@ public class ButonControllers {
             }
         });
     }
-    private void updateButtonStates(Fragment currentFragment) {
+    public void updateButtonStates(Fragment currentFragment) {
 
         if (currentFragment instanceof ekleFragment) {
             ekleButon.setBackgroundResource(R.drawable.ekleaktif);
@@ -79,7 +79,7 @@ public class ButonControllers {
             listeleButon.setBackgroundResource(R.drawable.listepasif);
         }
     }
-    private void setDefaultButtonStates() {
+    public void setDefaultButtonStates() {
         anasayfaButon.setBackgroundResource(R.drawable.anasayfa_dolu);
         ekleButon.setBackgroundResource(R.drawable.eklepasif);
         favoriButon.setBackgroundResource(R.drawable.heart_bos);

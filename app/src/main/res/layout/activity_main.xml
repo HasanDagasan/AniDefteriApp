@@ -63,7 +63,7 @@
             android:textStyle="bold|italic"
             android:typeface="serif"
             app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toStartOf="@+id/favoriler"
+            app:layout_constraintEnd_toStartOf="@+id/listele"
             app:layout_constraintStart_toEndOf="@+id/ekle"
             app:layout_constraintTop_toTopOf="parent" />
 
@@ -80,6 +80,7 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toStartOf="@id/listele"
             app:layout_constraintStart_toEndOf="@id/home"
+            android:visibility="invisible"
             app:layout_constraintTop_toTopOf="parent" />
 
         <Button
@@ -117,8 +118,9 @@
             android:layout_height="wrap_content"
             android:layout_gravity="top"
             ads:adSize="BANNER"
-            ads:adUnitId="ca-app-pub-3940256099942544/6300978111"/>
-        <!--ads:adUnitId="ca-app-pub-3169252627939778/4684347122"-->
+            ads:adUnitId="ca-app-pub-3169252627939778/4684347122"/>
+        <!--ads:adUnitId="ca-app-pub-3940256099942544/6300978111"-->
+
 
 
         <Button
@@ -166,7 +168,19 @@
                     android:layout_marginEnd="35dp"
                     android:background="@android:color/transparent"
                     android:visibility="invisible"
+                    tools:visibility="visible"
                     android:text="" />
+
+                <ImageView
+                    android:id="@+id/hatirlaticiIconMain1"
+                    android:layout_width="23dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="top|start"
+                    android:layout_marginTop="45dp"
+                    android:layout_marginStart="35dp"
+                    android:src="@drawable/ic_notification"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
 
             </FrameLayout>
 
@@ -195,7 +209,19 @@
                     android:layout_marginEnd="35dp"
                     android:background="@android:color/transparent"
                     android:visibility="invisible"
+                    tools:visibility="visible"
                     android:text="" />
+
+                <ImageView
+                    android:id="@+id/hatirlaticiIconMain2"
+                    android:layout_width="23dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="top|start"
+                    android:layout_marginTop="45dp"
+                    android:layout_marginStart="35dp"
+                    android:src="@drawable/ic_notification"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
             </FrameLayout>
 
             <!-- Button 3 with overlay -->
@@ -223,7 +249,19 @@
                     android:layout_marginEnd="35dp"
                     android:background="@android:color/transparent"
                     android:visibility="invisible"
+                    tools:visibility="visible"
                     android:text="" />
+
+                <ImageView
+                    android:id="@+id/hatirlaticiIconMain3"
+                    android:layout_width="23dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="top|start"
+                    android:layout_marginTop="45dp"
+                    android:layout_marginStart="35dp"
+                    android:src="@drawable/ic_notification"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
             </FrameLayout>
 
             <!-- Button 4 with overlay -->
@@ -251,7 +289,19 @@
                     android:layout_marginEnd="35dp"
                     android:background="@android:color/transparent"
                     android:visibility="invisible"
+                    tools:visibility="visible"
                     android:text="" />
+
+                <ImageView
+                    android:id="@+id/hatirlaticiIconMain4"
+                    android:layout_width="23dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="top|start"
+                    android:layout_marginTop="45dp"
+                    android:layout_marginStart="35dp"
+                    android:src="@drawable/ic_notification"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
             </FrameLayout>
 
             <!-- Button 5 with overlay -->
@@ -279,7 +329,19 @@
                     android:layout_marginEnd="35dp"
                     android:background="@android:color/transparent"
                     android:visibility="invisible"
+                    tools:visibility="visible"
                     android:text="" />
+
+                <ImageView
+                    android:id="@+id/hatirlaticiIconMain5"
+                    android:layout_width="23dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="top|start"
+                    android:layout_marginTop="45dp"
+                    android:layout_marginStart="35dp"
+                    android:src="@drawable/ic_notification"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
             </FrameLayout>
 
             <!-- Button 6 with overlay -->
@@ -307,7 +369,19 @@
                     android:layout_marginEnd="35dp"
                     android:background="@android:color/transparent"
                     android:visibility="invisible"
+                    tools:visibility="visible"
                     android:text="" />
+
+                <ImageView
+                    android:id="@+id/hatirlaticiIconMain6"
+                    android:layout_width="23dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="top|start"
+                    android:layout_marginTop="45dp"
+                    android:layout_marginStart="35dp"
+                    android:src="@drawable/ic_notification"
+                    android:visibility="gone"
+                    tools:visibility="visible" />
 
             </FrameLayout>
 
