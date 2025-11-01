@@ -138,14 +138,14 @@ public class favoriFragment extends Fragment {
                 if (actionMode == null) {
                     String secilenMetin = liste.get(position);
                     boolean favoriDurumu = secilenMetin.startsWith("★");
-
+                    boolean hatirlatici = secilenMetin.endsWith(" ~");
                     String temizMetin = favoriDurumu ? secilenMetin.substring(1).trim() : secilenMetin;
                     temizMetin = temizMetin.replaceAll("\\(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}\\)", "").trim();
 
                     getActivity().getSupportFragmentManager().popBackStack();
 
                     ((MainActivity) getActivity()).mouseClickSound();
-                    editFragment editFragment = com.hasandagasan.anidefteri.editFragment.newInstance(temizMetin, favoriDurumu);
+                    editFragment editFragment = com.hasandagasan.anidefteri.editFragment.newInstance(temizMetin, favoriDurumu, hatirlatici);
                     if (getActivity() != null) {
                         getActivity().getSupportFragmentManager()
                                 .beginTransaction()
