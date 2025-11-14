@@ -6,24 +6,25 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
 import android.provider.Settings;
+import android.util.Log;
 import android.widget.Toast;
 import java.util.Calendar;
+
 public class ReminderScheduler {
 
     public static void scheduleReminder(Context context, Calendar calendar, String notMetni, String tekrarTipi, String kayitTarihi) {
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
 
-        // Android 12 ve üzeri için tam zamanlı alarm iznini kontrol et
+        // Android 12 (API 31) ve üzeri için tam zamanlı alarm iznini kontrol et
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             if (!alarmManager.canScheduleExactAlarms()) {
-                // İzin yoksa kullanıcıyı ayarlara yönlendir (isteğe bağlı ama önerilir)
-                Toast.makeText(context, "Tam zamanlı alarm izni gerekli.", Toast.LENGTH_LONG).show();
+                Toast.makeText(context, "Doğru zamanlı hatırlatıcılar için izin gerekli.", Toast.LENGTH_LONG).show();
+                // Kullanıcıyı izin vermesi için ayarlara yönlendir
                 Intent intent = new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM);
                 context.startActivity(intent);
                 return;
             }
         }
-
         int alarmId = notMetni.hashCode();
 
         Intent intent = new Intent(context, ReminderBroadcastReceiver.class);
@@ -39,8 +40,12 @@ public class ReminderScheduler {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
-        if (calendar.getTimeInMillis() < System.currentTimeMillis()) {
+        boolean shouldSchedule = true;
+
+        // Alarm zamanı geçmişse
+        if ((calendar.getTimeInMillis() + 3500) <= System.currentTimeMillis()) {
             if (!tekrarTipi.equals("Tek Seferlik")) {
+                // Tekrarlı alarm ise, bir sonraki periyoda ayarla
                 switch (tekrarTipi) {
                     case "Her Gün":
                         calendar.add(Calendar.DAY_OF_YEAR, 1);
@@ -52,27 +57,48 @@ public class ReminderScheduler {
                         calendar.add(Calendar.YEAR, 1);
                         break;
                 }
+                Toast.makeText(context, "Geçmiş bir tarih seçildi, bir sonraki periyoda ayarlandı.", Toast.LENGTH_SHORT).show();
+            } else {
+                // Tek seferlikse ve tarih geçmişse, alarmı kurma
+                Toast.makeText(context, "Geçmiş tarihe tek seferlik hatırlatma kurulamaz.", Toast.LENGTH_LONG).show();
+                shouldSchedule = false; // Bayrağı false yap
             }
         }
-        alarmManager.setExact(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+
+        if (shouldSchedule) {
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.getTimeInMillis(), pendingIntent);
+            Log.d("ReminderScheduler", "Alarm kuruldu: " + notMetni + " - Zaman: " + calendar.getTime());
+
+            if (context instanceof MainActivity) {
+                ((MainActivity) context).guncelleNotHatirlatici(notMetni, tekrarTipi, calendar);
+                Toast.makeText(context, "Hatırlatıcı ayarlandı.", Toast.LENGTH_SHORT).show();
+            }
+
+        } else {
+            // Alarm kurulmadıysa, (varsa) JSON'daki eski hatırlatıcıyı temizle
+            MainActivity.removeReminderFromJson(context, notMetni);
+        }
     }
 
     public static void cancelReminder(Context context, String notMetni) {
         AlarmManager alarmManager = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-        int alarmId = notMetni.hashCode();
+        int alarmId = notMetni.hashCode(); // İptal edilecek alarmın ID'si, kurarken kullanılanla aynı olmalı.
 
         Intent intent = new Intent(context, ReminderBroadcastReceiver.class);
+
+        // DEĞİŞİKLİK: FLAG_NO_CREATE yerine FLAG_UPDATE_CURRENT kullanmak, mevcut bir PendingIntent'i bulmanın
+        // daha güvenilir bir yoludur.
         PendingIntent pendingIntent = PendingIntent.getBroadcast(
                 context,
                 alarmId,
                 intent,
-                PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_IMMUTABLE
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
-        // Eğer PendingIntent varsa (yani alarm kuruluysa), iptal et.
-        if (pendingIntent != null) {
-            alarmManager.cancel(pendingIntent);
-            pendingIntent.cancel();
-        }
+        // PendingIntent her zaman null olmayacaktır bu bayrakla, bu yüzden kontrolü kaldırıp doğrudan iptal ediyoruz.
+        alarmManager.cancel(pendingIntent);
+        pendingIntent.cancel(); // PendingIntent'i de sistemden temizle
+
+        Log.d("ReminderScheduler", "Alarm iptal edildi: " + notMetni);
     }
 }

@@ -20,8 +20,9 @@ import com.hasandagasan.anidefteri.classes.GetTypeFace;
 
 public class ekleFragment extends Fragment {
 
+    // View Elemanları
     private CheckBox checkboxFavori;
-    private CheckBox checkboxHatirlatici;
+    private CheckBox checkboxHatirlatici; // YENİ
     private EditText editTextNot;
     private Button btnKaydet;
     private AdView adView;
@@ -43,7 +44,7 @@ public class ekleFragment extends Fragment {
         // View'ları bağla
         adView = view.findViewById(R.id.adViewFragment);
         checkboxFavori = view.findViewById(R.id.eklecheckFavori);
-        checkboxHatirlatici = view.findViewById(R.id.ekleCheckHatirlatici);
+        checkboxHatirlatici = view.findViewById(R.id.ekleCheckHatirlatici); // YENİ: ID'yi XML'deki ile eşleştir
         editTextNot = view.findViewById(R.id.ekleMetin);
         btnKaydet = view.findViewById(R.id.ekleKaydetButton);
 
@@ -55,7 +56,7 @@ public class ekleFragment extends Fragment {
         btnKaydet.setOnClickListener(v -> {
             String metin = editTextNot.getText().toString().trim();
             boolean favori = checkboxFavori.isChecked();
-            boolean hatirlatici = checkboxHatirlatici.isChecked();
+            boolean hatirlatici = checkboxHatirlatici.isChecked(); // YENİ
 
             if (metin.isEmpty()) {
                 Toast.makeText(getContext(), "Lütfen bir metin girin", Toast.LENGTH_SHORT).show();
@@ -130,6 +131,7 @@ public class ekleFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        // Ana ekrandaki butonların durumunu tekrar ayarla
         if (getActivity() instanceof MainActivity) {
             ((MainActivity) getActivity()).setupButonlar();
         }

@@ -66,7 +66,7 @@ public class editFragment extends Fragment {
         adView = view.findViewById(R.id.adViewFragment);
         editTextNot = view.findViewById(R.id.editMetin);
         checkboxFavori = view.findViewById(R.id.checkFavori);
-        checkboxHatirlatici = view.findViewById(R.id.checkHatirlatici);
+        checkboxHatirlatici = view.findViewById(R.id.checkHatirlatici); // YENİ: ID'yi XML'deki ile eşleştir
         btnKaydet = view.findViewById(R.id.kaydetButton);
 
         // Reklamı yükle
@@ -115,7 +115,7 @@ public class editFragment extends Fragment {
                 mainActivity.showReminderDialog(yeniMetin);
             } else {
                 // Eğer hatırlatıcı seçili değilse, mevcut hatırlatıcıyı (varsa) sil.
-                mainActivity.removeReminderFromJson(getContext(), yeniMetin);
+                MainActivity.removeReminderFromJson(getContext(), yeniMetin);
             }
 
             mainActivity.mouseClickSound();

@@ -29,6 +29,22 @@ public class ReminderBroadcastReceiver extends BroadcastReceiver {
         String kayitTarihiStr = intent.getStringExtra("KAYIT_TARIHI");
         String zamanFarkiBasligi = getZamanFarkiMetni(kayitTarihiStr);
 
+        Intent activityIntent = new Intent(context, MainActivity.class);
+        activityIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+
+        // MainActivity'ye hangi fragment'ı açacağını ve hangi veriyi taşıyacağını söyle
+        activityIntent.putExtra("OPEN_FRAGMENT", "HatirlatmaDetayFragment");
+        activityIntent.putExtra("NOT_METNI", notMetni);
+        activityIntent.putExtra("KAYIT_TARIHI", kayitTarihiStr);
+
+        // Her bildirim için benzersiz bir requestCode kullanarak PendingIntent oluştur
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                context,
+                notificationId, // Benzersiz ID
+                activityIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
+        );
+
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         String channelId = "reminder_channel";
 
@@ -37,18 +53,7 @@ public class ReminderBroadcastReceiver extends BroadcastReceiver {
             notificationManager.createNotificationChannel(channel);
         }
 
-        Intent notificationIntent = new Intent(context, MainActivity.class);
-        notificationIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-
-        PendingIntent pendingIntent = PendingIntent.getActivity(
-                context,
-                notificationId,
-                notificationIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
-        );
-
         Bitmap largeIcon = BitmapFactory.decodeResource(context.getResources(), R.mipmap.ic_launcher);
-
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, channelId)
                 .setSmallIcon(R.drawable.ic_notification)
                 .setLargeIcon(largeIcon)
@@ -69,6 +74,11 @@ public class ReminderBroadcastReceiver extends BroadcastReceiver {
                 Log.d("Receiver", "Tek seferlik hatırlatıcı için static silme metodu çağrılıyor.");
                 MainActivity.removeReminderFromJson(context, notMetni);
 
+                // 2. YENİ: MainActivity'e arayüzünü güncellemesi için anons gönder
+                Log.d("Receiver", "Tek seferlik hatırlatıcı silindi, MainActivity'e anons gönderiliyor.");
+                Intent updateUIIntent = new Intent("REMINDER_DELETED_ACTION");
+                LocalBroadcastManager.getInstance(context).sendBroadcast(updateUIIntent);
+
             } else {
                 // Eğer tekrarlı ise, bir sonraki alarmı kur.
                 Calendar calendar = Calendar.getInstance();
@@ -84,8 +94,7 @@ public class ReminderBroadcastReceiver extends BroadcastReceiver {
                         calendar.add(Calendar.YEAR, 1);
                         break;
                 }
-                // ... (scheduleReminder çağrısı aynı)
-                ReminderScheduler.scheduleReminder(context, calendar, notMetni, tekrarTipi, intent.getStringExtra("KAYIT_TARIHI"));
+                ReminderScheduler.scheduleReminder(context, calendar, notMetni, tekrarTipi, kayitTarihiStr);
             }
         }
     }
