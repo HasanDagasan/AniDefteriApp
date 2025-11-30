@@ -7,28 +7,36 @@ import android.util.SparseBooleanArray;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.BaseAdapter;
+import android.widget.ArrayAdapter; // DEĞİŞİKLİK: BaseAdapter yerine ArrayAdapter kullanıldı.
+import android.widget.ImageView;   // DEĞİŞİKLİK: ImageView import edildi.
 import android.widget.TextView;
+
+import androidx.annotation.NonNull; // DEĞİŞİKLİK: Annotation eklendi.
+import androidx.annotation.Nullable;
+
 import com.hasandagasan.anidefteri.classes.HeartButton;
 import java.util.ArrayList;
-public class MyListAdapter extends BaseAdapter {
-    private final Context context;
-    private final ArrayList<String> liste;
+
+// DEĞİŞİKLİK: Sınıf tanımı ArrayAdapter'dan türetildi. Bu, standart ve daha yönetilebilir bir yoldur.
+public class MyListAdapter extends ArrayAdapter<String> {
+
+    private final MainActivity mainActivity; // DEĞİŞİKLİK: MainActivity referansı eklendi.
     private final int textColor;
     private final Typeface typeface;
-    private final boolean multiSelectMode;
     private final SparseBooleanArray selectedItems;
     private OnFavoriteChangedListener favoriteChangedListener;
+
     public interface OnFavoriteChangedListener {
         void onFavoriteChanged(int position, boolean isFavorite);
     }
 
-    public MyListAdapter(Context context, ArrayList<String> liste, int textColor, Typeface typeface, boolean multiSelectMode) {
-        this.context = context;
-        this.liste = liste;
+    public MyListAdapter(@NonNull Context context, ArrayList<String> liste, int textColor, Typeface typeface, boolean singleSelectionMode) {
+        // DEĞİŞİKLİK: Super constructor'a layout ID ve liste verildi.
+        super(context, R.layout.list_item_layout, liste);
+        // DEĞİŞİKLİK: MainActivity'yi context üzerinden alıyoruz.
+        this.mainActivity = (MainActivity) context;
         this.textColor = textColor;
         this.typeface = typeface;
-        this.multiSelectMode = multiSelectMode;
         this.selectedItems = new SparseBooleanArray();
     }
 
@@ -36,46 +44,53 @@ public class MyListAdapter extends BaseAdapter {
         this.favoriteChangedListener = listener;
     }
 
+    @NonNull
     @Override
-    public View getView(int position, View convertView, ViewGroup parent) {
+    public View getView(int position, @Nullable View convertView, @NonNull ViewGroup parent) {
+        // ViewHolder deseni, listelerde performansı artırır.
+        ViewHolder holder;
         if (convertView == null) {
-            convertView = LayoutInflater.from(context).inflate(R.layout.list_item_layout, parent, false);
+            convertView = LayoutInflater.from(getContext()).inflate(R.layout.list_item_layout, parent, false);
+            holder = new ViewHolder();
+            holder.textView = convertView.findViewById(R.id.textViewItem);
+            holder.heartButton = convertView.findViewById(R.id.kalp);
+            holder.hatirlaticiIcon = convertView.findViewById(R.id.hatirlaticiIconList); // İkonu bul
+            convertView.setTag(holder);
+        } else {
+            holder = (ViewHolder) convertView.getTag();
         }
 
-        TextView textView = convertView.findViewById(R.id.textViewItem);
-        HeartButton heart = convertView.findViewById(R.id.kalp);
+        String tamMetin = getItem(position);
+        if (tamMetin == null) return convertView; // Null kontrolü
 
-        String text = liste.get(position);
+        boolean isFavorite = tamMetin.startsWith("★");
+        String temizMetin = temizleVeMetniAl(tamMetin); // Yardımcı metot
+        String gorunenMetin = isFavorite ? tamMetin.substring(1).trim() : tamMetin;
 
-        boolean isFavorite = text.startsWith("★");
-        String displayText = isFavorite ? text.substring(1).trim() : text;
+        holder.textView.setText(gorunenMetin);
+        holder.textView.setTextColor(textColor);
+        holder.textView.setTypeface(typeface);
 
-        textView.setText(displayText);
-        textView.setTextColor(textColor);
-        textView.setTypeface(typeface);
-
-        heart.setHeartColor(isFavorite ? textColor : Color.GRAY);
-
-        heart.setOnClickListener(v -> {
-            boolean newFavoriteState;
-            if (isFavorite) {
-                liste.set(position, displayText); // ★ kaldır
-                newFavoriteState = false;
-            } else {
-                liste.set(position, "★ " + displayText); // ★ ekle
-                newFavoriteState = true;
-            }
-
-            // Callback ile Activity'ye bildir
+        // DEĞİŞİKLİK: Kalp butonu rengi ve tıklama olayı
+        holder.heartButton.setHeartColor(isFavorite ? textColor : Color.GRAY);
+        holder.heartButton.setOnClickListener(v -> {
+            // Favori durumunu tersine çevir
             if (favoriteChangedListener != null) {
-                favoriteChangedListener.onFavoriteChanged(position, newFavoriteState);
+                favoriteChangedListener.onFavoriteChanged(position, !isFavorite);
             }
-
-            notifyDataSetChanged();
         });
 
-        if (multiSelectMode && selectedItems.get(position, false)) {
-            convertView.setBackgroundColor(Color.LTGRAY);
+        // --- YENİ BÖLÜM: Hatırlatıcı ikonunu yönetme ---
+        if (mainActivity.hatirlaticiVarMi(temizMetin)) {
+            holder.hatirlaticiIcon.setVisibility(View.VISIBLE);
+        } else {
+            holder.hatirlaticiIcon.setVisibility(View.GONE);
+        }
+        // --- YENİ BÖLÜM SONU ---
+
+        // Seçim modu için arkaplan rengi
+        if (selectedItems.get(position, false)) {
+            convertView.setBackgroundColor(0x33A9A9A9); // Yarı saydam gri
         } else {
             convertView.setBackgroundColor(Color.TRANSPARENT);
         }
@@ -83,6 +98,21 @@ public class MyListAdapter extends BaseAdapter {
         return convertView;
     }
 
+    // DEĞİŞİKLİK: Kod tekrarını önlemek için yardımcı metot
+    private String temizleVeMetniAl(String tamMetin) {
+        if (tamMetin == null) return "";
+        String temizMetin = tamMetin.startsWith("★") ? tamMetin.substring(1).trim() : tamMetin;
+        return temizMetin.replaceAll("\\s*\\(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}\\)$", "").trim();
+    }
+
+    // ViewHolder Sınıfı
+    private static class ViewHolder {
+        TextView textView;
+        HeartButton heartButton;
+        ImageView hatirlaticiIcon;
+    }
+
+    // Seçim yönetimi metotları (Değişiklik yok)
     public void toggleSelection(int position) {
         if (selectedItems.get(position, false)) {
             selectedItems.delete(position);
@@ -108,44 +138,4 @@ public class MyListAdapter extends BaseAdapter {
         }
         return items;
     }
-    public void toggleFavorite(int position) {
-        // Pozisyonun geçerli olup olmadığını kontrol et
-        if (position < 0 || position >= liste.size()) {
-            return;
-        }
-
-        String currentItemText = liste.get(position);
-        boolean isCurrentlyFavorite = currentItemText.startsWith("★");
-
-        // Yeni favori durumunu belirle
-        boolean newFavoriteState = !isCurrentlyFavorite;
-
-        // Metni güncelle (yıldız ekle veya kaldır)
-        if (newFavoriteState) {
-            // Favori değilse yıldız ekle
-            String displayText = currentItemText.trim();
-            liste.set(position, "★ " + displayText);
-        } else {
-            // Favori ise yıldızı kaldır
-            String displayText = currentItemText.substring(1).trim();
-            liste.set(position, displayText);
-        }
-
-        // Listener'ı (dinleyiciyi) tetikle. Bu, değişikliği JSON dosyasına kaydeder.
-        if (favoriteChangedListener != null) {
-            favoriteChangedListener.onFavoriteChanged(position, newFavoriteState);
-        }
-
-        // Değişikliğin anında görünmesi için adaptörü bilgilendir.
-        notifyDataSetChanged();
-    }
-
-    @Override
-    public int getCount() { return liste.size(); }
-
-    @Override
-    public Object getItem(int position) { return liste.get(position); }
-
-    @Override
-    public long getItemId(int position) { return position; }
 }
